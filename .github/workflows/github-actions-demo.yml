@@ -1,0 +1,16 @@
+name: GitHub Actions 演示
+on: [push]
+jobs:
+  example-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 该作业由推送事件自动触发。"
+      - run: echo "🐧 当前运行在 GitHub 托管的服务器上。"
+      - run: echo "🔎 当前分支是 ${{ github.ref }}，仓库是 ${{ github.repository }}。"
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+      - run: echo "💡 仓库代码已被克隆。"
+      - run: echo "🖥️ 工作流已准备好在运行器上测试代码。"
+      - name: 列出仓库中的文件
+        run: ls ${{ github.workspace }}
+      - run: echo "🍏 当前作业状态是 ${{ job.status }}。"
