@@ -1,7 +1,10 @@
 name: 自动部署所有 Slidev 幻灯片
 
+# 在 on: 部分添加自动触发条件（可选）
 on:
-  workflow_dispatch:    # 手动触发部署
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -98,3 +101,4 @@ jobs:
         git commit -m "自动部署所有 Slidev 幻灯片 [skip ci]" || echo "没有变化"
         git push origin main || echo "推送失败，请检查权限或远程仓库设置"
       shell: bash
+
