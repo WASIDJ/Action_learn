@@ -17,7 +17,7 @@ jobs:
         node-version: '22'
 
     - name: 安装根目录依赖
-      working-directory: slidev学习
+      working-directory: slidev_learn
       run: npm install
 
     - name: 查找 Slidev 项目目录
