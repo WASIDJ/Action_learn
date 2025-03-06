@@ -1,10 +1,7 @@
 name: 自动部署所有 Slidev 幻灯片
 
-# 在 on: 部分添加自动触发条件（可选）
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:    # 手动触发部署
 
 jobs:
   deploy:
@@ -22,39 +19,30 @@ jobs:
     - name: Install root dependencies
       run: npm install
 
-    # 如果 Slidev 没有全局安装，可考虑添加安装步骤，或使用 npx
     - name: 安装 Slidev（如果需要全局安装）
       run: npm install -g slidev || echo "全局安装失败，后续将使用 npx 运行 Slidev"
 
-    # 步骤 1：查找所有 Slidev 项目目录
     - name: 查找 Slidev 项目目录
       id: find_projects
       run: |
-        # 查找当前目录下深度不超过 2 的 slides.md 文件，并排除 slidev/ 目录下的文件
         projects=$(find . -maxdepth 2 -type f -name "slides.md" | grep -v "^./slidev/")
         echo "找到的项目："
         echo "$projects"
         if [ -z "$projects" ]; then
-          echo "没有找到 Slidev 项目！" 
           echo "projects=[]" >> $GITHUB_OUTPUT
           exit 0
         fi
-        # 利用 xargs 和 jq 更稳健地生成 JSON 数组
         project_list=$(echo "$projects" | xargs -n1 dirname | sort -u)
         json=$(echo "$project_list" | jq -R -s -c 'split("\n")[:-1]')
         echo "projects=$json" >> $GITHUB_OUTPUT
       shell: bash
 
-    - name: 显示查找的项目
-      run: echo "项目列表: ${{ steps.find_projects.outputs.projects }}"
 
-    # 步骤 2：依次构建每个 Slidev 项目
+
     - name: 构建所有 Slidev 项目
       run: |
         projects=${{ steps.find_projects.outputs.projects }}
-        # 检查 JSON 数组是否为空
         if [ "$projects" = "[]" ]; then
-          echo "无项目需要构建，跳过此步骤。"
           exit 0
         fi
         echo "$projects" | jq -c '.[]' | while read project; do
@@ -64,41 +52,34 @@ jobs:
           if [ -f "package.json" ]; then
             npm install || echo "npm install 出错，但继续..."
           fi
-          # 使用 npx 调用 slidev build，确保使用项目本地依赖（如果全局安装失败则有效）
           npx slidev build --base /slidev/$(basename "$project")/ || echo "构建失败：$project"
           cd - || exit 1
         done
       shell: bash
 
-    # 步骤 3：将构建产物复制到 GitHub Pages 目录中
     - name: 复制构建产物到 GitHub Pages 目录
       run: |
         projects=${{ steps.find_projects.outputs.projects }}
         if [ "$projects" = "[]" ]; then
-          echo "无项目需要复制构建产物，跳过此步骤。"
           exit 0
         fi
         echo "$projects" | jq -c '.[]' | while read project; do
           project=$(echo $project | tr -d '"')
           target="slidev/$(basename "$project")"
-          echo "复制 $project/dist/ 到 $target/"
           mkdir -p "$target"
-          # 检查 dist 目录是否存在
           if [ -d "$project/dist" ]; then
-            cp -r "$project/dist/"* "$target/" || echo "复制过程中出现错误，继续下一项目"
+            cp -r "$project/dist/"* "$target/" || echo "复制错误"
           else
-            echo "项目 $project 没有 dist 目录，跳过复制。"
+            echo "跳过 $project"
           fi
         done
       shell: bash
 
-    # 步骤 4：提交并推送更改到 GitHub
     - name: 提交并推送更新
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add .
-        git commit -m "自动部署所有 Slidev 幻灯片 [skip ci]" || echo "没有变化"
-        git push origin main || echo "推送失败，请检查权限或远程仓库设置"
+        git commit -m "自动部署所有 Slidev 幻灯片 [skip ci]" || echo "无变更"
+        git push origin main || echo "推送失败"
       shell: bash
-
