@@ -17,7 +17,7 @@ jobs:
         node-version: '22'
 
     - name: Install root dependencies
-      working-directory: ./slidev学习
+      working-directory: slidev学习
       run: npm install
 
     - name: 安装 Slidev（如果需要全局安装）
